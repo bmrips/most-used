@@ -1,15 +1,15 @@
-module MostUsed.MostUsedSpec
-    ( main
-    , spec
-    ) where
+module MostUsed.MostUsedSpec (
+    main,
+    spec,
+) where
 
-import           Data.List              (intercalate)
-import           MostUsed
-import qualified MostUsed.Parser.Bash   as Bash
-import qualified MostUsed.Parser.Zsh    as Zsh
-import           MostUsed.Types
-import           Test.Hspec
-import           Text.Megaparsec.String
+import Data.List (intercalate)
+import MostUsed
+import qualified MostUsed.Parser.Bash as Bash
+import qualified MostUsed.Parser.Zsh as Zsh
+import MostUsed.Types
+import Test.Hspec
+import Text.Megaparsec.Char
 
 main :: IO ()
 main = hspec spec
@@ -32,11 +32,11 @@ commonSpec description parser cmd = describe description $ do
             failures parser s `shouldBe` []
 
     describe "successes" $ do
-        it "ignores a single unparseable command" $ do
-            successes parser (unparseableCommand cmd) `shouldBe` []
+        it "ignores a single unparsable command" $ do
+            successes parser (unparsableCommand cmd) `shouldBe` []
 
-        it "ignores an unparseable command but parses the good one" $ do
-            let s1 = unparseableCommand cmd
+        it "ignores an unparsable command but parses the good one" $ do
+            let s1 = unparsableCommand cmd
             let s2 = cmd "cmd 'a'"
             let s = intercalate "\n" [s1, s2]
             successes parser s `shouldBe` [Command "cmd" [SingleQuoted "a"]]
@@ -95,17 +95,23 @@ commonSpec description parser cmd = describe description $ do
 
             it "parses a command with a variety of arguments" $ do
                 let s = cmd "cmd one `two` '3 x' \"4 y\" $(arg)"
-                let result = Command "cmd" [NotQuoted "one"
-                                        , Backticks "two"
-                                        , SingleQuoted "3 x"
-                                        , DoubleQuoted "4 y"
-                                        , CommandSubstitution (Command "arg" [])]
+                let result =
+                        Command
+                            "cmd"
+                            [ NotQuoted "one"
+                            , Backticks "two"
+                            , SingleQuoted "3 x"
+                            , DoubleQuoted "4 y"
+                            , CommandSubstitution (Command "arg" [])
+                            ]
                 successes parser s `shouldBe` [result]
 
             it "parses a line with multiple items separated by a pipe" $ do
                 let s = cmd "c1 one |c2 `two`"
-                let result = [Command "c1" [NotQuoted "one"]
-                             , Command "c2" [Backticks "two"]]
+                let result =
+                        [ Command "c1" [NotQuoted "one"]
+                        , Command "c2" [Backticks "two"]
+                        ]
                 successes parser s `shouldBe` result
 
             it "parses a line with @" $ do
@@ -151,11 +157,19 @@ commonSpec description parser cmd = describe description $ do
                     let s2 = cmd "c2 '3 x' \"4 y\""
                     let s3 = cmd "c3"
                     let s = intercalate "\n" [s1, s2, s3]
-                    let i1 = Command "c1" [NotQuoted "one"
-                                    , Backticks "two"
-                                    , CommandSubstitution (Command "arg" [])]
-                    let i2 = Command "c2" [SingleQuoted "3 x"
-                                    , DoubleQuoted "4 y"]
+                    let i1 =
+                            Command
+                                "c1"
+                                [ NotQuoted "one"
+                                , Backticks "two"
+                                , CommandSubstitution (Command "arg" [])
+                                ]
+                    let i2 =
+                            Command
+                                "c2"
+                                [ SingleQuoted "3 x"
+                                , DoubleQuoted "4 y"
+                                ]
                     successes parser s `shouldBe` [i1, i2, Command "c3" []]
 
             describe "separated by a semicolon" $ do
@@ -167,11 +181,19 @@ commonSpec description parser cmd = describe description $ do
                     -- adds the prefix for items on a new line, and these items
                     -- are all on the same line.
                     let s = cmd $ intercalate ";" [s1, s2, s3]
-                    let i1 = Command "c1" [NotQuoted "one"
-                                    , Backticks "two"
-                                    , CommandSubstitution (Command "arg" [])]
-                    let i2 = Command "c2" [SingleQuoted "3 x"
-                                    , DoubleQuoted "4 y"]
+                    let i1 =
+                            Command
+                                "c1"
+                                [ NotQuoted "one"
+                                , Backticks "two"
+                                , CommandSubstitution (Command "arg" [])
+                                ]
+                    let i2 =
+                            Command
+                                "c2"
+                                [ SingleQuoted "3 x"
+                                , DoubleQuoted "4 y"
+                                ]
                     successes parser s `shouldBe` [i1, i2, Command "c3" []]
 
         it "can parse something with a bare escaped newline" $ do
@@ -200,11 +222,19 @@ zshSpec parser cmd = describe "Zsh-only tests" $ do
                 let s2 = cmd "c2 '3 x' \"4 y\""
                 let s3 = cmd "c3"
                 let s = intercalate "\n" [s1, s2, s3]
-                let i1 = Command "c1" [NotQuoted "one"
-                                   , Backticks "tw\\no"
-                                   , CommandSubstitution (Command "arg" [])]
-                let i2 = Command "c2" [SingleQuoted "3 x"
-                                   , DoubleQuoted "4 y"]
+                let i1 =
+                        Command
+                            "c1"
+                            [ NotQuoted "one"
+                            , Backticks "tw\\no"
+                            , CommandSubstitution (Command "arg" [])
+                            ]
+                let i2 =
+                        Command
+                            "c2"
+                            [ SingleQuoted "3 x"
+                            , DoubleQuoted "4 y"
+                            ]
                 successes parser s `shouldBe` [i1, i2, Command "c3" []]
 
         it "can parse something with a bare escaped newline" $ do
@@ -219,26 +249,34 @@ zshSpec parser cmd = describe "Zsh-only tests" $ do
                 let s2 = cmd "c2 '3" ++ escapedNewline ++ " x' \"4 " ++ escapedNewline ++ "y\""
                 let s3 = cmd "c3"
                 let s = intercalate "\n" [s1, s2, s3]
-                let i1 = Command "c1" [NotQuoted "one"
-                                   , Backticks "tw\\nno"
-                                   , CommandSubstitution (Command "arg" [])]
-                let i2 = Command "c2" [SingleQuoted "3\\n x"
-                                   , DoubleQuoted "4 \\ny"]
+                let i1 =
+                        Command
+                            "c1"
+                            [ NotQuoted "one"
+                            , Backticks "tw\\nno"
+                            , CommandSubstitution (Command "arg" [])
+                            ]
+                let i2 =
+                        Command
+                            "c2"
+                            [ SingleQuoted "3\\n x"
+                            , DoubleQuoted "4 \\ny"
+                            ]
                 successes parser s `shouldBe` [i1, i2, Command "c3" []]
 
 escapedNewline :: String
 escapedNewline = "\\n"
 
-unparseableCommand :: (String -> String) -> String
-unparseableCommand cmd = cmd "foo(){\\n # -X = \"whatever\", blah\\n"
+unparsableCommand :: (String -> String) -> String
+unparsableCommand cmd = cmd "foo(){\\n # -X = \"whatever\", blah\\n"
 
 bashCommand :: String -> String
 bashCommand = id
 
 zshCommand :: String -> String
 zshCommand s = commandNumber ++ s
-    where
-        commandNumber = "  452  "
+  where
+    commandNumber = "  452  "
 
 zshCommandWithLowNumber :: String -> String
 zshCommandWithLowNumber s = "    1  " ++ s

@@ -1,0 +1,8 @@
+/.direnv/
+/.pre-commit-config.yaml
+/cabal.project.local
+/cabal.project.local~
+/dist-*/
+/dist/
+result
+result-*

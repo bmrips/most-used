@@ -1,12 +1,12 @@
-module MostUsed.Parser.Zsh
-    ( items
-    ) where
+module MostUsed.Parser.Zsh (
+    items,
+) where
 
-import           Control.Monad          (void)
+import Control.Monad (void)
 import qualified MostUsed.Parser.Common as Common (items)
-import           MostUsed.Types         (Command)
-import           Text.Megaparsec        (digitChar, skipSome, spaceChar, string)
-import           Text.Megaparsec.String (Parser)
+import MostUsed.Types (Command, Parser)
+import Text.Megaparsec (skipSome)
+import Text.Megaparsec.Char (digitChar, spaceChar, string)
 
 items :: Parser [Command]
 items = do
